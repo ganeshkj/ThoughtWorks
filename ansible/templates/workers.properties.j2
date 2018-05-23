@@ -1,0 +1,4 @@
+worker.list=tomcatA
+worker.tomcatA.type=ajp13
+worker.tomcatA.host={{ groups['APP'][0] }}
+worker.tomcatA.port=8009

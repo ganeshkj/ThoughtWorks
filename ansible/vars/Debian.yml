@@ -1,0 +1,12 @@
+apache_packages: 
+  - apache2
+  - apache2-dev
+  - gcc
+  - unzip
+apache_service_name: apache2
+apache_conf_path: /etc/apache2/conf-available/
+apache_modules_path: /usr/lib/apache2/modules/
+apache_logs_path: /var/log/apache2/
+apxs_path: /usr/bin/apxs
+java_package: openjdk-8-jdk
+apache_sites_path: /etc/apache2/sites-available/

@@ -1,0 +1,86 @@
+- name: Create APP Layer to Stack
+  hosts: APP
+  become: yes
+  gather_facts: yes
+  tags:
+    - APP
+  vars:
+    TOMCAT_URL: "http://www-us.apache.org/dist/tomcat/tomcat-9/v9.0.8/bin/apache-tomcat-9.0.8.tar.gz"
+    USERNAME: tomcat
+    TOMCAT_DIR: /tomcat
+    WAR_URL: 
+      URL: https://s3.amazonaws.com/infra-assessment/companyNews.war
+      LOC: "{{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/webapps"
+    PREVAYLER_URL: 
+      URL: http://repo1.maven.org/maven2/org/prevayler/prevayler-core/2.6/prevayler-core-2.6.jar
+      LOC: "{{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/lib"
+  
+  tasks:
+    - name: including vars for {{ ansible_os_family }}
+      include_vars: "{{ ansible_os_family }}.yml"
+
+    - name: Get tomcat- Dir 
+      shell: echo "{{TOMCAT_URL}}" | awk -F / '{print $NF}' | sed -e 's/.tar.gz//'
+      register: out
+
+    - name: Define tomcat dir variable
+      set_fact:
+        TOMCAT_TAR_DIR: "{{out.stdout}}"
+
+    - name: Install Java
+      package: 
+        name: "{{ java_package }}"
+        state: installed
+
+    - name: Create {{USERNAME}} user 
+      user:
+        name: "{{USERNAME}}"
+
+    - name: Create project directory 
+      file:
+        path: "{{TOMCAT_DIR}}" 
+        state: directory 
+        mode: 0755
+        owner: "{{USERNAME}}"
+        group: "{{USERNAME}}"
+      
+    - name: Download and extract tomcat 
+      unarchive:
+        src: "{{TOMCAT_URL}}"
+        dest: "{{TOMCAT_DIR}}"
+        remote_src: yes
+      become_user:  "{{USERNAME}}"
+
+    - name: List files and directories in webapps
+      find:
+        paths: "{{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/webapps"
+        file_type: any
+      register: out
+
+    - name: Remove files in webapps
+      file:
+        path: "{{item.path}}"
+        state: absent
+      with_items: "{{out.files}}"
+
+    - name: Download War and Jar files
+      get_url:
+        url: "{{item.URL}}"
+        dest: "{{item.LOC}}"
+      with_items: 
+        - "{{WAR_URL}}"
+        - "{{PREVAYLER_URL}}"
+
+
+    - name: Check tomcat running or not
+      shell: ps -ef | grep java | grep {{TOMCAT_DIR}} | grep -v grep 
+      register: out
+      ignore_errors: yes
+
+    - name: Start Tomcat 
+      shell: "nohup sh {{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/bin/startup.sh"
+      when: out.rc != 0
+
+    - name: Restart Tomcat 
+      shell: "nohup sh {{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/bin/shutdown.sh && nohup sh {{TOMCAT_DIR}}/{{TOMCAT_TAR_DIR}}/bin/startup.sh"
+      when: out.rc == 0

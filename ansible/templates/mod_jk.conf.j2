@@ -1,0 +1,11 @@
+LoadModule jk_module {{ apache_modules_path }}mod_jk.so
+JkWorkersFile {{ apache_conf_path }}workers.properties
+JkLogFile {{ apache_logs_path }}mod_jk.log
+JkLogLevel info
+JkLogStampFormat "[%a %b %d %H:%M:%S %Y]"
+JkOptions +ForwardKeySize +ForwardURICompat -ForwardDirectories
+JkRequestLogFormat "%w %V %T"
+JkMount /companyNews tomcatA
+JkMount /companyNews/* tomcatA
+JkUnmount /*images/* tomcatA
+JkUnmount /*styles/* tomcatA

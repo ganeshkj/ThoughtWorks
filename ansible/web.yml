@@ -1,0 +1,89 @@
+- name: Create Web Layer in Stack
+  hosts: WEB
+  become: yes
+  gather_facts: yes
+  tags:
+    - WEB
+  vars:
+    TOMCON_URL: "http://redrockdigimark.com/apachemirror/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.42-src.tar.gz"
+    STATIC_FILES_URL: "https://s3.amazonaws.com/infra-assessment/static.zip"
+    STATIC_FILES_PATH: "/var/www/html/"
+
+  tasks:
+    - name: including vars for {{ ansible_os_family }}
+      include_vars: "{{ ansible_os_family }}.yml"
+    
+    - name: Get tomcat-connectors Dir 
+      shell: echo "{{TOMCON_URL}}" | awk -F / '{print $NF}' | sed -e 's/.tar.gz//'
+      register: out
+
+    - name: Define tomcat-donnectors dir variable
+      set_fact:
+        TOMCON_DIR: "{{out.stdout}}"
+
+    - name: Install Web Server
+      package:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - "{{ apache_packages }}"
+
+    - name: Download static files and extract it
+      block:
+      - unarchive:
+          src: "{{STATIC_FILES_URL}}"
+          dest: "{{STATIC_FILES_PATH}}" 
+          remote_src: yes
+      - command: mv "{{STATIC_FILES_PATH}}/static" "{{STATIC_FILES_PATH}}/companyNews"
+
+    - name: Download mod_jk and extract it
+      unarchive:
+        src: "{{TOMCON_URL}}"
+        dest: /root
+        remote_src: yes
+
+    - name: Check mod_jk.so file
+      stat:
+        path: "{{ apache_modules_path }}mod_jk.so"
+      register: out
+
+    - name: Compile mod_jk
+      shell: "{{item}}"
+      args:
+        chdir: /root/{{TOMCON_DIR}}/native
+      with_items:
+        - "./configure --with-apxs={{ apxs_path }}"
+        - make 
+        - make install
+      when: out.stat.exists == false
+
+    - name: Create workers.properties file
+      template:
+          src: workers.properties.j2
+          dest: "{{ apache_conf_path }}workers.properties"
+    
+    - name: Create mod_jk.conf file
+      template:
+          src: mod_jk.conf.j2
+          dest: "{{ apache_conf_path }}mod_jk.conf"
+
+    - name: Enabling Mod JK and applying additional Configuration for Debian Systems.
+      block:
+        - file:
+            path: "/etc/apache2/logs" 
+            state: directory 
+            mode: 0755
+        - command: a2enconf mod_jk
+        - template:
+              src: a2_mod_jk.conf.j2
+              dest: "{{ apache_sites_path }}a2_mod_jk.conf"
+        - blockinfile:
+            path: "{{ apache_sites_path }}000-default.conf"
+            block: 'Include sites-available/a2_mod_jk.conf'
+            insertbefore: "</VirtualHost>"
+      when: ansible_os_family == "Debian"
+    
+    - name: Restart web Server
+      service: 
+        name: "{{ apache_service_name }}"
+        state: restarted

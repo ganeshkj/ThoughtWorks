@@ -1,0 +1,12 @@
+apache_packages: 
+  - httpd
+  - httpd-devel
+  - gcc
+  - unzip
+apache_service_name: httpd
+apache_conf_path: /etc/httpd/conf.d/
+apache_modules_path: /etc/httpd/modules/
+apache_logs_path: /var/log/httpd/
+apxs_path: /bin/apxs
+java_package: java
+# apache_sites_path: /etc/apache2/sites-available/
