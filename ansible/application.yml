@@ -30,7 +30,7 @@
     - name: Install Java
       package: 
         name: "{{ java_package }}"
-        state: installed
+        state: present
 
     - name: Create {{USERNAME}} user 
       user:
@@ -57,7 +57,7 @@
         file_type: any
       register: out
 
-    - name: Remove files in webapps
+    - name: Remove files and directories in webapps
       file:
         path: "{{item.path}}"
         state: absent

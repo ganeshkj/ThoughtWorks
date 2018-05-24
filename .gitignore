@@ -1,0 +1,6 @@
+.ssh
+.ssh/*
+*.tfstate
+*/*.tfstate*
+.terraform
+.terraform/*

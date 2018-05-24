@@ -66,6 +66,10 @@
       template:
           src: mod_jk.conf.j2
           dest: "{{ apache_conf_path }}mod_jk.conf"
+    - name: Enabling ssl
+      block:
+        - command: a2enmod ssl
+        - command: a2ensite default-ssl
 
     - name: Enabling Mod JK and applying additional Configuration for Debian Systems.
       block:
@@ -81,7 +85,13 @@
             path: "{{ apache_sites_path }}000-default.conf"
             block: 'Include sites-available/a2_mod_jk.conf'
             insertbefore: "</VirtualHost>"
+        - blockinfile:
+            path: "{{ apache_sites_path }}default-ssl.conf"
+            block: 'Include sites-available/a2_mod_jk.conf'
+            insertbefore: "</VirtualHost>"
       when: ansible_os_family == "Debian"
+
+
     
     - name: Restart web Server
       service: 

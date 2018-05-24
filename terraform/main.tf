@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_key_pair" "CompanyNewsKey" {
   key_name   = "companynews-key"
-  public_key = "${file("/home/ganesh/.ssh/id_rsa.pub")}"
+  public_key = "${file("../.ssh/id_rsa.pub")}"
 }
 
 resource "aws_vpc" "CompanyNewsVPC" {
@@ -62,12 +62,6 @@ resource "aws_security_group" "CompanyNewsSGAppl" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
     from_port   = 8009
     to_port     = 8009
     protocol    = "tcp"
@@ -98,7 +92,12 @@ resource "aws_security_group" "CompanyNewsSGWeb" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   egress {
     from_port       = 0
     to_port         = 0
